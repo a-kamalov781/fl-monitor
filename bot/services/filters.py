@@ -97,9 +97,11 @@ def check(title: str, description: str, label: str, budget: int | None, min_budg
         if pattern.search(text):
             return Verdict(False, f"минус-слово: {name}")
     keywords = find_keywords(text)
-    weak_ai = keywords == ["ai"] and not _AI_CONTEXT.search(text)
+    parts = [part.strip() for part in normalize(label).split(" / ")]
+    # В разделе «Программирование» AI — это задача на разработку, а не на генерацию контента
+    weak_ai = keywords == ["ai"] and not _AI_CONTEXT.search(text) and parts[0] != "программирование"
     if weak_ai or not keywords:
-        section = normalize(label).split(" / ")[-1].strip()
+        section = parts[-1]
         if section not in LABEL_HINTS:
             return Verdict(False, "ai без контекста" if weak_ai else "нет ключевых слов")
         keywords = [section]

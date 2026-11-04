@@ -138,6 +138,21 @@ def test_ai_in_our_section_passes(section):
     assert check("Сделать ИИ", "", f"AI — искусственный интеллект / {section}", None).matched
 
 
+@pytest.mark.parametrize("label", ["Программирование / Python", "Программирование / Веб-программирование"])
+def test_ai_in_programming_section_passes(label):
+    assert check("Довести готовую AI-систему до внедрения", "", label, None).matched
+
+
+@pytest.mark.parametrize("label", ["Сайты / Веб-программирование", "AI — искусственный интеллект / Генерация видео", ""])
+def test_programming_rule_looks_at_the_section_not_the_subsection(label):
+    assert not check("Довести готовую AI-систему до внедрения", "", label, None).matched
+
+
+def test_minus_words_and_budget_still_apply_in_programming_section():
+    assert not check("AI-система бесплатно", "", "Программирование / Python", None).matched
+    assert not check("AI-система", "", "Программирование / Python", 1000).matched
+
+
 def test_travel_agency_is_not_ai_context():
     assert not check("Реклама ИИ для агентства", "", "", None).matched
 
