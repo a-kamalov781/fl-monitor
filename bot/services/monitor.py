@@ -124,6 +124,10 @@ class Monitor:
             try:
                 await self.send_card(order)
             except TelegramBadRequest as e:
+                if "chat not found" in str(e).lower():
+                    # Владелец ещё не нажал /start. С заказом всё в порядке: дождётся в очереди
+                    log.warning("delivery stopped: owner has not started the bot yet")
+                    return
                 # Этот заказ не отправится и при повторе. Он не должен держать очередь
                 log.error("order %s rejected by Telegram: %s", order.id, e)
                 await self.db.mark_failed(order.id)

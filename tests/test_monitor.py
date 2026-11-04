@@ -201,6 +201,33 @@ async def test_owner_who_has_not_started_the_bot_gets_orders_later(tmp_path):
     assert (await h.db.get(10)).delivery == SENT
 
 
+async def test_chat_not_found_keeps_orders_until_owner_presses_start(tmp_path):
+    """Так Telegram отвечает на самом деле, если владелец ни разу не открывал бота."""
+    h = await started(tmp_path)
+    h.session.fail_with = TelegramBadRequest(method=None, message="Bad Request: chat not found")
+    await h.tick(rss_item(10, BOT), rss_item(11, BOT))
+    assert (await h.db.get(10)).delivery == PENDING and (await h.db.get(11)).delivery == PENDING
+
+    h.session.fail_with = None
+    await h.monitor.deliver()
+    assert (await h.db.get(10)).delivery == SENT and (await h.db.get(11)).delivery == SENT
+    assert len(h.session.messages) == 2
+
+
+async def test_digest_waits_too_when_owner_has_not_pressed_start(tmp_path):
+    h = await started(tmp_path)
+    h.clock.moment = NIGHT
+    await h.tick(rss_item(10, BOT, pub=NIGHT), rss_item(11, BOT, pub=NIGHT))
+    h.clock.moment = MORNING
+    h.session.fail_with = TelegramBadRequest(method=None, message="Bad Request: chat not found")
+    await h.monitor.deliver()
+    assert (await h.db.get(10)).delivery == PENDING
+
+    h.session.fail_with = None
+    await h.monitor.deliver()
+    assert len(h.session.messages) == 1 and "Заказы за ночь: 2" in h.session.messages[0].text
+
+
 async def test_cards_are_paced(tmp_path):
     h = await started(tmp_path)
     h.slept.clear()
