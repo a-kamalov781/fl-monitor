@@ -74,6 +74,11 @@ MINUS_WORDS: dict[str, re.Pattern] = {name: _compile(p) for name, p in {
 }.items()}
 
 
+# Само по себе «ai/ии» слишком широко: ИИ-видео, презентация про AI. Бот, ассистент и интеграция — отдельные
+# ключевые слова, поэтому с ними заказ и так проходит. Здесь остаётся только то, что ключевым словом не считается
+_AI_CONTEXT = _compile(_word("агент(?:а|у|ом|е|ы|ов|ам|ами|ах)?"))
+
+
 @dataclass(frozen=True)
 class Verdict:
     matched: bool
@@ -92,10 +97,11 @@ def check(title: str, description: str, label: str, budget: int | None, min_budg
         if pattern.search(text):
             return Verdict(False, f"минус-слово: {name}")
     keywords = find_keywords(text)
-    if not keywords:
+    weak_ai = keywords == ["ai"] and not _AI_CONTEXT.search(text)
+    if weak_ai or not keywords:
         section = normalize(label).split(" / ")[-1].strip()
         if section not in LABEL_HINTS:
-            return Verdict(False, "нет ключевых слов")
+            return Verdict(False, "ai без контекста" if weak_ai else "нет ключевых слов")
         keywords = [section]
     if budget is not None and budget < min_budget:
         return Verdict(False, f"бюджет меньше {min_budget}")

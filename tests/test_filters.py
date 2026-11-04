@@ -108,6 +108,44 @@ def test_section_name_counts_when_text_is_cut():
     assert check("Переделать сценарий", "Детали в ЛС", "Программирование / Разработка Чат-ботов", None).matched
 
 
+@pytest.mark.parametrize("title, description", [
+    ("Создать ии видео", "Сделать ии видео на мою строительную сферу"),
+    ("Подготовить презентацию", "Тема «От хаоса в данных до AI-powered команды»"),
+    ("Нужен специалист по генерации ИИ фото", ""),
+    ("Обучение ИИ для команды", ""),
+])
+def test_ai_alone_is_not_enough(title, description):
+    verdict = check(title, description, "AI — искусственный интеллект / Генерация видео", 50_000)
+    assert not verdict.matched and verdict.reason == "ai без контекста"
+
+
+@pytest.mark.parametrize("title, description", [
+    ("ИИ для Telegram", ""),  # другое ключевое слово
+    ("Бот с ИИ", ""),
+    ("ИИ ассистент", ""),
+    ("Интеграция ИИ в сервис", ""),
+    ("Разработка ИИ-агента", ""),
+    ("Сервис", "Нужны AI-агенты для отдела продаж"),
+    ("ИИ для CRM", ""),
+    ("Подключить ИИ", "через автоматизацию отчётов"),
+])
+def test_ai_with_context_passes(title, description):
+    assert check(title, description, "", None).matched
+
+
+@pytest.mark.parametrize("section", ["AI-агенты", "Боты с AI"])
+def test_ai_in_our_section_passes(section):
+    assert check("Сделать ИИ", "", f"AI — искусственный интеллект / {section}", None).matched
+
+
+def test_travel_agency_is_not_ai_context():
+    assert not check("Реклама ИИ для агентства", "", "", None).matched
+
+
+def test_gpt_keyword_is_not_narrowed():
+    assert check("Настроить ChatGPT", "", "", None).matched
+
+
 def test_general_section_name_is_not_enough():
     assert not check("Отчёт в 1С", "", "Автоматизация бизнеса / 1С бухгалтерия", None).matched
 
